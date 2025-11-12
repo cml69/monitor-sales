@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Sales Multi Promo</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hidden { display: none; }
+        #reportText {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+        .product-select {
+            width: 100%;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #212529;
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            height: 38px;
+        }
+        .danger-zone {
+            border: 1px dashed #dc3545;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .promo-tab {
+            cursor: pointer;
+            padding: 8px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            margin: 0 5px;
+            transition: all 0.3s;
+            text-align: center;
+            display: inline-block;
+        }
+        .promo-tab:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+        }
+        .promo-tab.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+        .promo-tab h5 {
+            margin: 0;
+            font-weight: bold;
+            font-size: 1rem;
+            display: inline;
+        }
+        .promo-tab small {
+            display: none;
+        }
+        .promo-selector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="container mt-4">
+    <h2 class="mb-4 text-center">Monitor Sales Multi Promo</h2>
+    
+    <!-- Promo Selector -->
+    <div class="promo-selector">
+        <div class="promo-tab active" onclick="switchPromo('palingMurah')">
+            <h5>🔥 Paling Murah</h5>
+            <small>Promo Harian</small>
+        </div>
+        <div class="promo-tab" onclick="switchPromo('hematMingguIni')">
+            <h5>💰 Hemat Minggu Ini</h5>
+            <small>Promo Mingguan</small>
+        </div>
+        <div class="promo-tab" onclick="switchPromo('tebusHeboh')">
+            <h5>🎉 Tebus Heboh</h5>
+            <small>Promo Spesial</small>
+        </div>
+    </div>
+
+    <div id="loadingIndicator" class="alert alert-info hidden">Loading...</div>
+    
+    <!-- Form Input Target -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Input Target <span id="promoTitle" class="badge bg-primary">Paling Murah</span></h5>
+            <div class="row">
+                <div class="col-md-5">
+                    <input type="text" id="productName" class="form-control" placeholder="Nama Barang">
+                </div>
+                <div class="col-md-5">
+                    <input type="number" id="targetSales" class="form-control" placeholder="Target">
+                </div>
+                <div class="col-md-2">
+                    <button onclick="addProduct()" class="btn btn-primary w-100">Isi Target</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Input Penjualan -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Input Penjualan</h5>
+            <div class="row">
+                <div class="col-md-5">
+                    <select id="searchProduct" class="product-select">
+                        <option value="">Pilih Barang</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <input type="number" id="salesQty" class="form-control" placeholder="Quantity">
+                </div>
+                <div class="col-md-2">
+                    <button onclick="addSales()" class="btn btn-success w-100">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Monitoring -->
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>No</th>
+                    <th>Nama Barang</th>
+                    <th>Target</th>
+                    <th>Sales H.Ini</th>
+                    <th>Total Sales</th>
+                    <th>Persentase</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="salesTable"></tbody>
+            <tfoot class="table-secondary fw-bold">
+                <tr>
+                    <td colspan="2">TOTAL</td>
+                    <td id="totalTarget">0</td>
+                    <td id="totalToday">0</td>
+                    <td id="totalSales">0</td>
+                    <td id="avgPercentage">0%</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Convert to Text Report -->
+    <div class="mt-3">
+        <button onclick="generateReport()" class="btn btn-info">Convert to Text Report</button>
+        <button onclick="copyReport()" class="btn btn-secondary ms-2">Copy Text</button>
+        <textarea id="reportText" class="hidden"></textarea>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="danger-zone">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="text-danger mb-0">Reset Data Promo</h5>
+                <small class="text-muted">Menghapus data promo <span id="resetPromoName" class="fw-bold">Paling Murah</span></small>
+            </div>
+            <button onclick="confirmReset()" class="btn btn-outline-danger">
+                Hapus Data Promo Ini
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let allPromoData = {
+            palingMurah: [],
+            hematMingguIni: [],
+            tebusHeboh: []
+        };
+        
+        let currentPromo = 'palingMurah';
+        const API_URL = '/api'; // Changed from Netlify to Vercel
+        
+        const promoConfig = {
+            palingMurah: {
+                title: 'Paling Murah',
+                reportTitle: 'Laporan Paling Murah'
+            },
+            hematMingguIni: {
+                title: 'Hemat Minggu Ini',
+                reportTitle: 'Laporan Hemat Minggu Ini'
+            },
+            tebusHeboh: {
+                title: 'Tebus Heboh',
+                reportTitle: 'Laporan Tebus Heboh'
+            }
+        };
+
+        // Switch Promo Tab
+        function switchPromo(promoType) {
+            currentPromo = promoType;
+            
+            // Update UI tabs
+            document.querySelectorAll('.promo-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.closest('.promo-tab').classList.add('active');
+            
+            // Update badges and labels
+            document.getElementById('promoTitle').textContent = promoConfig[promoType].title;
+            document.getElementById('resetPromoName').textContent = promoConfig[promoType].title;
+            
+            // Update table and selects
+            updateTable();
+            updateProductSelect();
+            
+            // Clear inputs
+            clearInputs('productName', 'targetSales', 'salesQty');
+            document.getElementById('reportText').classList.add('hidden');
+        }
+
+        // Show/Hide Loading
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').classList.toggle('hidden', !show);
+        }
+
+        // API Calls
+        async function fetchData() {
+            try {
+                showLoading(true);
+                const response = await fetch(`${API_URL}/getData`);
+                if (response.ok) {
+                    const data = await response.json();
+                    allPromoData = {
+                        palingMurah: data.palingMurah || [],
+                        hematMingguIni: data.hematMingguIni || [],
+                        tebusHeboh: data.tebusHeboh || []
+                    };
+                } else {
+                    console.log('No data found, starting fresh');
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                // Fallback to localStorage
+                const stored = localStorage.getItem('allPromoData');
+                if (stored) {
+                    allPromoData = JSON.parse(stored);
+                }
+            } finally {
+                showLoading(false);
+                updateTable();
+                updateProductSelect();
+            }
+        }
+
+        async function saveData() {
+            try {
+                const response = await fetch(`${API_URL}/saveData`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(allPromoData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save data');
+                }
+                
+                // Backup to localStorage
+                localStorage.setItem('allPromoData', JSON.stringify(allPromoData));
+            } catch (error) {
+                console.error('Error saving data:', error);
+                // Fallback to localStorage silently
+                localStorage.setItem('allPromoData', JSON.stringify(allPromoData));
+            }
+        }
+
+        // Get current products
+        function getCurrentProducts() {
+            return allPromoData[currentPromo];
+        }
+
+        // Initialize
+        async function init() {
+            await fetchData();
+        }
+
+        // Reset Current Promo Data
+        async function confirmReset() {
+            const promoName = promoConfig[currentPromo].title;
+            const confirmation = confirm(`PERHATIAN!\n\nAnda akan menghapus semua data promo "${promoName}":\n- Target Produk\n- Data Penjualan\n- Total Sales\n\nData promo lain tidak akan terhapus.\n\nYakin ingin menghapus data promo ini?`);
+            
+            if (confirmation) {
+                allPromoData[currentPromo] = [];
+                await saveData();
+                updateTable();
+                updateProductSelect();
+                
+                const textarea = document.getElementById('reportText');
+                textarea.value = '';
+                textarea.classList.add('hidden');
+                
+                alert(`Data promo "${promoName}" telah dihapus.`);
+            }
+        }
+
+        // Add New Product
+        async function addProduct() {
+            const name = document.getElementById('productName').value.trim();
+            const target = parseInt(document.getElementById('targetSales').value);
+            
+            if (!name || !target) {
+                alert('Mohon isi nama barang dan target');
+                return;
+            }
+
+            const products = getCurrentProducts();
+            if (products.some(p => p.name === name)) {
+                alert('Produk sudah ada di promo ini');
+                return;
+            }
+
+            products.push({
+                name: name,
+                target: target,
+                todaySales: 0,
+                totalSales: 0
+            });
+
+            await saveData();
+            updateTable();
+            updateProductSelect();
+            clearInputs('productName', 'targetSales');
+        }
+
+        // Update Product Select
+        function updateProductSelect() {
+            const select = document.getElementById('searchProduct');
+            const selectedValue = select.value;
+            
+            select.innerHTML = '<option value="">Pilih Barang</option>';
+            
+            const products = getCurrentProducts();
+            const sortedProducts = [...products].sort((a, b) => a.name.localeCompare(b.name));
+            
+            sortedProducts.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.name;
+                option.textContent = product.name;
+                select.appendChild(option);
+            });
+            
+            if (products.some(p => p.name === selectedValue)) {
+                select.value = selectedValue;
+            }
+        }
+
+        // Add Sales
+        async function addSales() {
+            const name = document.getElementById('searchProduct').value;
+            const qty = parseInt(document.getElementById('salesQty').value);
+
+            if (!name || !qty) {
+                alert('Mohon pilih barang dan isi quantity');
+                return;
+            }
+
+            const products = getCurrentProducts();
+            const product = products.find(p => p.name === name);
+            if (!product) {
+                alert('Produk tidak ditemukan');
+                return;
+            }
+
+            product.todaySales += qty;
+            product.totalSales += qty;
+
+            await saveData();
+            updateTable();
+            clearInputs('salesQty');
+        }
+
+        // Update Table
+        function updateTable() {
+            const tbody = document.getElementById('salesTable');
+            tbody.innerHTML = '';
+
+            let totalTarget = 0;
+            let totalToday = 0;
+            let totalSales = 0;
+            let totalPercentage = 0;
+
+            const products = getCurrentProducts();
+            products.forEach((product, index) => {
+                const percentage = (product.totalSales / product.target * 100).toFixed(1);
+                
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = index + 1;
+                row.insertCell(1).textContent = product.name;
+                row.insertCell(2).textContent = product.target;
+                row.insertCell(3).textContent = product.todaySales;
+                row.insertCell(4).textContent = product.totalSales;
+                row.insertCell(5).textContent = percentage + '%';
+                
+                // Action buttons
+                const actionCell = row.insertCell(6);
+                actionCell.innerHTML = `
+                    <button onclick="editProduct(${index})" class="btn btn-sm btn-warning">Edit</button>
+                `;
+
+                totalTarget += product.target;
+                totalToday += product.todaySales;
+                totalSales += product.totalSales;
+                totalPercentage += parseFloat(percentage);
+            });
+
+            const avgPercentage = products.length ? (totalPercentage / products.length).toFixed(1) : 0;
+
+            document.getElementById('totalTarget').textContent = totalTarget;
+            document.getElementById('totalToday').textContent = totalToday;
+            document.getElementById('totalSales').textContent = totalSales;
+            document.getElementById('avgPercentage').textContent = avgPercentage + '%';
+        }
+
+        // Edit Product
+        async function editProduct(index) {
+            const products = getCurrentProducts();
+            const product = products[index];
+            
+            const newTarget = prompt(`Edit Target untuk "${product.name}"\nTarget saat ini: ${product.target}`, product.target);
+            
+            if (newTarget && !isNaN(newTarget) && parseInt(newTarget) > 0) {
+                product.target = parseInt(newTarget);
+                await saveData();
+                updateTable();
+            }
+        }
+
+        // Generate Text Report
+        function generateReport() {
+            const textarea = document.getElementById('reportText');
+            const reportTitle = promoConfig[currentPromo].reportTitle;
+            let report = `${reportTitle}\n\n`;
+            
+            const products = getCurrentProducts();
+            products.forEach((product, index) => {
+                const percentage = (product.totalSales / product.target * 100).toFixed(1);
+                report += `${index + 1}. ${product.name}_${product.target}_${product.todaySales}_${product.totalSales}_${percentage}%\n`;
+            });
+
+            const avgPercentage = products.length ? 
+                (products.reduce((acc, p) => acc + (p.totalSales / p.target * 100), 0) / products.length).toFixed(1) : 0;
+
+            report += `\navg persentase *${avgPercentage}%*`;
+            
+            textarea.value = report;
+            textarea.classList.remove('hidden');
+        }
+
+        // Copy Report to Clipboard
+        function copyReport() {
+            const textarea = document.getElementById('reportText');
+            if (!textarea.value) {
+                alert('Generate report terlebih dahulu!');
+                return;
+            }
+            textarea.select();
+            document.execCommand('copy');
+            alert('Text copied to clipboard!');
+        }
+
+        // Utility Functions
+        function clearInputs(...ids) {
+            ids.forEach(id => document.getElementById(id).value = '');
+        }
+
+        // Initialize on load
+        window.onload = init;
+    </script>
+</body>
+                  </html>
